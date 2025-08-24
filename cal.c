@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <conio.h>
 #include <windows.h>
-#include <wchar.h>
-#include <wctype.h>
 
 #define MAX 500
 
@@ -13,6 +11,7 @@ wchar_t cal_total[MAX] = {0};
 long double cal_ans = 0.0L;
 
 BOOL is_fst = FALSE;
+BOOL is_point = FALSE;
 // BOOL is_err = FALSE;
 
 int now_mode = 0;  // NOTE:-  1>[+] , 2>[-] , 3>[*] , 4>[/] , 5>[%]
@@ -77,7 +76,7 @@ void now_cal(int m) {
 
         if (is_fst) {
             cal_ans *= value;
-            wcscat(cal_total, L"\033[90m * \033[97m");
+            wcscat(cal_total, L"\033[90m x \033[97m");
         } else {
             cal_ans = value;
             is_fst = TRUE;
@@ -118,6 +117,7 @@ void now_cal(int m) {
 
     cal_temp[0] = L'\0';
     temp_len = 0;
+    is_point = FALSE;
 }
 
 
@@ -135,6 +135,7 @@ int main() {
 
             case L'+':
                 if (temp_len > 0) {
+
                     now_mode = 1;
                     cal_mode[0] = L'+';
                     now_cal(now_mode);
@@ -144,6 +145,7 @@ int main() {
 
             case L'-':
                 if (temp_len > 0) {
+
                     now_mode = 2;
                     cal_mode[0] = L'-';
                     now_cal(now_mode);
@@ -153,6 +155,7 @@ int main() {
 
             case L'*':
                 if (temp_len > 0) {
+
                     now_mode = 3;
                     cal_mode[0] = L'x';
                     now_cal(now_mode);
@@ -162,6 +165,7 @@ int main() {
 
             case L'/':
                 if (temp_len > 0) {
+
                     now_mode = 4;
                     cal_mode[0] = L'/';
                     now_cal(now_mode);
@@ -171,6 +175,7 @@ int main() {
 
             case L'%':
                 if (temp_len > 0) {
+
                     now_mode = 5;
                     cal_mode[0] = L'%';
                     now_cal(now_mode);
@@ -193,8 +198,6 @@ int main() {
                 total_len = 0;
 
                 dis_update();
-
-
             break;
 
             case L'\r':
@@ -215,8 +218,9 @@ int main() {
             break;
 
             case L'.':
-                if (temp_len < 18) {
+                if (temp_len < 18 && !is_point) {
 
+                    is_point = TRUE;
                     wchar_t fix[2] = { i, L'\0' };
                     wcscat(cal_temp, fix);
                     temp_len++;
