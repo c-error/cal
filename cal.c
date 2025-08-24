@@ -4,9 +4,24 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#define MAX_TEMP 1024
+#define MAX 500
+
+wchar_t cal_temp[20] = {0};
+wchar_t cal_total[MAX] = {0};
+
+long double cal_ans = 0.0L;
+
+BOOL is_fst = FALSE;
+// BOOL is_err = FALSE;
+
+int now_mode = 0;  // NOTE:-  1>[+] , 2>[-] , 3>[*] , 4>[/]
+int temp_len = 0;
+int total_len = 0;
+
+
 
 void enable_ansi() {
+
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
     GetConsoleMode(hOut, &dwMode);
@@ -14,155 +29,186 @@ void enable_ansi() {
     SetConsoleMode(hOut, dwMode);
 }
 
-int get_cursor_position() {
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+void dis_print() {
 
-    if (GetConsoleScreenBufferInfo(hConsole, &csbi)) {
-        return csbi.dwCursorPosition.Y; // current Y position
-    }
-    return 0;
-}
-
-void print_data(const wchar_t *data_all, long double data_ans, const wchar_t *data_now) {
-
-    wprintf(L"\n\033[97m> %-14ls\n\033[33m> %-14.3Lf\n\033[31m> %-14ls\033[0m\n\n",
-        data_all,
-        data_ans,
-        data_now);
+    wprintf(L"\n\033[97m> %ls\n\033[33m> %Lf\n\033[31m> %ls\033[0m\n\n",
+        cal_total,
+        cal_ans,
+        cal_temp);
     fflush(stdout);
 }
 
-void set_cursor_position(int p, const wchar_t *data_all, long double data_ans, const wchar_t *data_now) {
-    COORD loc = {0, (SHORT)p};
-    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), loc);
-    print_data(data_all, data_ans, data_now);
+void dis_update() {
+
+    printf("\033[5A");
+    printf("\033[0J");
+    dis_print();
 }
+
+void now_cal(int m) {
+
+    long double value = wcstold(cal_temp, NULL);
+
+    if (m == 0) {
+
+        cal_ans = value;
+        is_fst = TRUE;
+
+    } else if (m == 1) {
+
+        if (is_fst) {
+            cal_ans += value;
+            wcscat(cal_total, L"\033[90m + \033[97m");
+        } else {
+            cal_ans = value;
+            is_fst = TRUE;
+        }
+
+    } else if (m == 2) {
+
+        if (is_fst) {
+            cal_ans -= value;
+            wcscat(cal_total, L"\033[90m - \033[97m");
+        } else {
+            cal_ans = value;
+            is_fst = TRUE;
+        }
+
+    } else if (m == 3) {
+
+        if (is_fst) {
+            cal_ans *= value;
+            wcscat(cal_total, L"\033[90m * \033[97m");
+        } else {
+            cal_ans = value;
+            is_fst = TRUE;
+        }
+
+    } else if (m == 4) {
+
+        if (is_fst) {
+            cal_ans /= value;
+            wcscat(cal_total, L"\033[90m / \033[97m");
+        } else {
+            cal_ans = value;
+            is_fst = TRUE;
+        }
+    }
+
+    int now_len = temp_len + 15;
+    total_len += now_len;
+
+    if (total_len > MAX) {
+
+        cal_total[0] = '\0';
+        wcscat(cal_total, L"\033[90m.. \033[97m");
+        wcscat(cal_total, cal_temp);
+
+        total_len = now_len;
+
+    } else wcscat(cal_total, cal_temp);
+
+    cal_temp[0] = L'\0';
+    temp_len = 0;
+}
+
+
 
 int main() {
 
-    wchar_t temp[MAX_TEMP] = {0};
-    wchar_t total[MAX_TEMP] = {0};
-    long double ANS = 0.0L;
-
-    wchar_t KEY;
-    size_t LEN = 0;
-
-    size_t CARRY = 0;
-
-    int MODE = 0;
-
+    wchar_t i;
+    
     enable_ansi();
-    print_data(L".", ANS, L".");
+    dis_print();
 
-    while ((KEY = _getch()) != L'q') {
-        int POS = get_cursor_position() - 5;
+    while ((i = _getch()) != L'q') {
 
-        switch (KEY) {
+        switch (i) {
 
             case L'+':
-                if (LEN > 0) {
-
-                    size_t value = (size_t)wcstoull(temp, NULL, 10);
-
-                    ANS = ANS + value;
-
-                    if (MODE) wcscat(total, L" + ");
-                    else MODE = 1;
-
-                    wcscat(total, temp);
-                    temp[0] = L'\0';
-                    set_cursor_position(POS, total, ANS, temp);
-                    LEN = 0;
+                if (temp_len > 0) {
+                    now_mode = 1;
+                    now_cal(now_mode);
+                    dis_update();
                 }
             break;
 
             case L'-':
-                if (LEN > 0) {
-
-                    size_t value = (size_t)wcstoull(temp, NULL, 10);
-
-                    ANS = ANS - value;
-
-                    if (MODE) wcscat(total, L" - ");
-                    else MODE = 1;
-
-                    wcscat(total, temp);
-                    temp[0] = L'\0';
-                    set_cursor_position(POS, total, ANS, temp);
-                    LEN = 0;
+                if (temp_len > 0) {
+                    now_mode = 2;
+                    now_cal(now_mode);
+                    dis_update();
                 }
             break;
 
             case L'*':
-                if (LEN > 0) {
-
-                    size_t value = (size_t)wcstoull(temp, NULL, 10);
-
-                    if (ANS == 0) ANS = value;
-                    else ANS = ANS * value;
-
-                    if (MODE) wcscat(total, L" * ");
-                    else MODE = 1;
-
-                    wcscat(total, temp);
-                    temp[0] = L'\0';
-                    set_cursor_position(POS, total, ANS, temp);
-                    LEN = 0;
+                if (temp_len > 0) {
+                    now_mode = 3;
+                    now_cal(now_mode);
+                    dis_update();
                 }
             break;
 
             case L'/':
-                if (LEN > 0) {
-
-                    size_t value = (size_t)wcstoull(temp, NULL, 10);
-
-                    if (ANS == 0) ANS = value;
-                    else ANS = ANS / value;
-
-                    if (MODE) wcscat(total, L" / ");
-                    else MODE = 1;
-
-                    wcscat(total, temp);
-                    temp[0] = L'\0';
-                    set_cursor_position(POS, total, ANS, temp);
-                    LEN = 0;
+                if (temp_len > 0) {
+                    now_mode = 4;
+                    now_cal(now_mode);
+                    dis_update();
                 }
             break;
 
             case L'c':
 
-                total[0] = L'\0';
-                ANS = 0.0L;
-                temp[0] = L'\0';
-                LEN = 0;
-                MODE = 0;
+                cal_total[0] = L'\0';
+                cal_temp[0] = L'\0';
+                
+                is_fst = FALSE;
 
-                printf("\033[5A");
-                printf("\033[0J");
-                fflush(stdout);
+                cal_ans = 0.0L;
 
-                set_cursor_position(POS, total, ANS, temp);
+                now_mode = 0;
+                temp_len = 0;
+                total_len = 0;
+
+                dis_update();
+
 
             break;
 
-            case L'\b':
-                if (LEN > 0) {
+            case L'\r':
+                if (temp_len > 0) {
 
-                    temp[LEN-1] = L'\0';
-                    LEN--;
-                    
-                    set_cursor_position(POS, total, ANS, temp);
+                    now_cal(now_mode);
+                    dis_update();
+                }
+            break;
+
+            case L'\b':
+                if (temp_len > 0) {
+
+                    cal_temp[temp_len-1] = L'\0';
+                    temp_len--;
+                    dis_update();
+                }
+            break;
+
+            case L'.':
+                if (temp_len < 18) {
+
+                    wchar_t fix[2] = { i, L'\0' };
+                    wcscat(cal_temp, fix);
+                    temp_len++;
+                    dis_update();
                 }
             break;
 
             default:
-                if (iswdigit(KEY) && LEN < 12) {
-                    wchar_t fix[2] = { KEY, L'\0' };
-                    wcscat(temp, fix);
-                    LEN++;
+                if (iswdigit(i) && temp_len < 18) {
 
-                    set_cursor_position(POS, total, ANS, temp);
+                    wchar_t fix[2] = { i, L'\0' };
+                    wcscat(cal_temp, fix);
+                    temp_len++;
+                    dis_update();
                 }
             break;
         }
