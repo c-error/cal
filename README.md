@@ -1,6 +1,6 @@
 # Cal
 
-➗ Cal is a simple calculator for Windows.
+➗ Cal is a simple & fast calculator for Windows.
 ![logo](banner.png)
 
 ## Features:
