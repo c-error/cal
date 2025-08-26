@@ -49,7 +49,7 @@
 
 - **Build the Project:**
     - Just run `build.bat`
-    - The file `fetch.exe` will appear inside the Source folder.
+    - The file `cal.exe` will appear inside the Source folder.
 
 ## Project Structure:
 The project has the following structure:
